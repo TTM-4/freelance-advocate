@@ -8,13 +8,14 @@ import Generator from "./pages/Generator";
 import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
+const basename = import.meta.env.MODE === 'production' ? '/freelance-advocate' : '/';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/generator" element={<Generator />} />

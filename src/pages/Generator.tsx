@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/Navbar";
 import { ProposalForm } from "@/components/ProposalForm";
+import { Footer } from "@/components/Footer";
 
 const Generator = () => {
   return (
@@ -9,6 +10,7 @@ const Generator = () => {
         <h1 className="text-3xl font-bold text-center mb-8">Create Your Proposal</h1>
         <ProposalForm />
       </div>
+      <Footer />
     </div>
   );
 };

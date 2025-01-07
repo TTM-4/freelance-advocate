@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const plans = [
   {
@@ -13,6 +15,7 @@ const plans = [
     ],
     buttonText: "Get Started",
     popular: false,
+    priceAmount: 0,
   },
   {
     name: "Pro",
@@ -25,12 +28,62 @@ const plans = [
       "Custom branding",
       "Proposal analytics",
     ],
-    buttonText: "Coming Soon",
+    buttonText: "Subscribe Now",
     popular: true,
+    priceAmount: 19,
   },
 ];
 
 export const PricingSection = () => {
+  const { toast } = useToast();
+
+  const handlePayment = async (plan: typeof plans[0]) => {
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to subscribe to a plan.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: plan.priceAmount,
+          returnUrl: `${window.location.origin}/payment-success`,
+          cancelUrl: `${window.location.origin}/payment-cancelled`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Create form and submit to PayFast
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = data.paymentUrl;
+
+      Object.entries(data.paymentData).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value as string;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="py-20">
       <div className="container mx-auto px-4">
@@ -66,7 +119,8 @@ export const PricingSection = () => {
               <Button
                 className="w-full"
                 variant={plan.popular ? "default" : "outline"}
-                disabled={plan.popular}
+                onClick={() => handlePayment(plan)}
+                disabled={plan.priceAmount === 0}
               >
                 {plan.buttonText}
               </Button>

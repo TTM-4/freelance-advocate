@@ -6,7 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const PAYFAST_SANDBOX_URL = "https://sandbox.payfast.co.za/eng/process"
+// Use sandbox URL for testing
+const PAYFAST_URL = "https://sandbox.payfast.co.za/eng/process"
 const MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID')
 const MERCHANT_KEY = Deno.env.get('PAYFAST_MERCHANT_KEY')
 
@@ -18,6 +19,13 @@ serve(async (req) => {
 
   try {
     const { amount, returnUrl, cancelUrl } = await req.json()
+
+    // Debug log for troubleshooting
+    console.log('Payment request received:', { amount, returnUrl, cancelUrl })
+    console.log('Using merchant credentials:', { 
+      merchantId: MERCHANT_ID ? 'Present' : 'Missing',
+      merchantKey: MERCHANT_KEY ? 'Present' : 'Missing'
+    })
 
     // Validate required environment variables
     if (!MERCHANT_ID || !MERCHANT_KEY) {
@@ -82,7 +90,7 @@ serve(async (req) => {
       )
     }
 
-    // Generate PayFast payment data
+    // Generate PayFast payment data for sandbox environment
     const paymentData = {
       merchant_id: MERCHANT_ID,
       merchant_key: MERCHANT_KEY,
@@ -92,12 +100,19 @@ serve(async (req) => {
       amount: amount.toFixed(2),
       item_name: 'ProposalPro AI Pro Subscription',
       custom_str1: payment.id,
+      // Add sandbox testing credentials
+      testing: 'true'  // Enable sandbox mode
     }
+
+    console.log('PayFast request data:', {
+      url: PAYFAST_URL,
+      paymentData: { ...paymentData, merchant_id: 'HIDDEN', merchant_key: 'HIDDEN' }
+    })
 
     // Return success response
     return new Response(
       JSON.stringify({
-        paymentUrl: PAYFAST_SANDBOX_URL,
+        paymentUrl: PAYFAST_URL,
         paymentData
       }),
       { 

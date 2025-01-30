@@ -42,6 +42,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          business_email: string | null
+          company_name: string | null
+          created_at: string | null
+          id: string
+          phone: string | null
+          subscription_end_date: string | null
+          subscription_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_email?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          id: string
+          phone?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_email?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

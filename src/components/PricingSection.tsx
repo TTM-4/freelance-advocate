@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const plans = [
   {
@@ -36,19 +38,36 @@ const plans = [
 
 export const PricingSection = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handlePayment = async (plan: typeof plans[0]) => {
-    try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to subscribe to a plan.",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
 
+    try {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
           amount: plan.priceAmount,

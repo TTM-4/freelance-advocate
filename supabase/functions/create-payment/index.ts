@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Use sandbox URL for testing
-const PAYFAST_URL = "https://sandbox.payfast.co.za/eng/process"
+// Use production URL
+const PAYFAST_URL = "https://www.payfast.co.za/eng/process"
 const MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID')
 const MERCHANT_KEY = Deno.env.get('PAYFAST_MERCHANT_KEY')
 
@@ -90,7 +90,7 @@ serve(async (req) => {
       )
     }
 
-    // Generate PayFast payment data for sandbox environment
+    // Generate PayFast payment data for production environment
     const paymentData = {
       merchant_id: MERCHANT_ID,
       merchant_key: MERCHANT_KEY,
@@ -99,9 +99,7 @@ serve(async (req) => {
       notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
       amount: amount.toFixed(2),
       item_name: 'ProposalPro AI Pro Subscription',
-      custom_str1: payment.id,
-      // Add sandbox testing credentials
-      testing: 'true'  // Enable sandbox mode
+      custom_str1: payment.id
     }
 
     console.log('PayFast request data:', {

@@ -1,9 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { PricingCard } from "./pricing/PricingCard";
 
 const plans = [
   {
@@ -81,7 +80,6 @@ export const PricingSection = () => {
 
       if (error) throw error;
 
-      // Create a form and submit it to the URL provided by the edge function
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = data.paymentUrl;
@@ -115,41 +113,12 @@ export const PricingSection = () => {
         <h2 className="text-3xl font-bold text-center mb-12">Simple, Transparent Pricing</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map((plan) => (
-            <div
+            <PricingCard
               key={plan.name}
-              className={`p-8 rounded-lg ${
-                plan.popular
-                  ? "border-2 border-secondary relative bg-secondary/5"
-                  : "border border-gray-200"
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute top-0 right-0 bg-secondary text-white px-3 py-1 text-sm rounded-bl-lg rounded-tr-lg">
-                  Popular
-                </span>
-              )}
-              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              <p className="text-4xl font-bold mb-6">
-                {plan.price}
-                <span className="text-lg text-gray-600 font-normal">/month</span>
-              </p>
-              <ul className="space-y-4 mb-8">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-2" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full"
-                variant={plan.popular ? "default" : "outline"}
-                onClick={() => handlePayment(plan)}
-                disabled={plan.priceAmount === 0 || loadingPlan === plan.name}
-              >
-                {loadingPlan === plan.name ? "Processing..." : plan.buttonText}
-              </Button>
-            </div>
+              plan={plan}
+              isLoading={loadingPlan === plan.name}
+              onSubscribe={handlePayment}
+            />
           ))}
         </div>
       </div>

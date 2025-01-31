@@ -20,7 +20,7 @@ export const PricingCard = ({ plan, isLoading, onSubscribe }: PricingCardProps) 
 
   const handleAction = () => {
     if (plan.priceAmount === 0) {
-      navigate("/");
+      navigate("/generator");  // Changed from "/" to "/generator"
     } else {
       onSubscribe(plan);
     }

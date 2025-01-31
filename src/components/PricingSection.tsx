@@ -40,7 +40,7 @@ export const PricingSection = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -68,7 +68,7 @@ export const PricingSection = () => {
       return;
     }
 
-    setIsLoading(true);
+    setLoadingPlan(plan.name);
 
     try {
       const { data, error } = await supabase.functions.invoke('create-payment', {
@@ -81,13 +81,12 @@ export const PricingSection = () => {
 
       if (error) throw error;
 
-      // Create a hidden form and submit it
+      // Submit directly to PayFast production URL
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = data.paymentUrl;
+      form.action = 'https://www.payfast.co.za/eng/process';
       form.style.display = 'none';
 
-      // Add all PayFast fields
       Object.entries(data.paymentData).forEach(([key, value]) => {
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -96,7 +95,6 @@ export const PricingSection = () => {
         form.appendChild(input);
       });
 
-      // Append form to body and submit
       document.body.appendChild(form);
       form.submit();
     } catch (error) {
@@ -107,7 +105,7 @@ export const PricingSection = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoadingPlan(null);
     }
   };
 
@@ -116,9 +114,9 @@ export const PricingSection = () => {
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-12">Simple, Transparent Pricing</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {plans.map((plan, index) => (
+          {plans.map((plan) => (
             <div
-              key={index}
+              key={plan.name}
               className={`p-8 rounded-lg ${
                 plan.popular
                   ? "border-2 border-secondary relative bg-secondary/5"
@@ -147,9 +145,9 @@ export const PricingSection = () => {
                 className="w-full"
                 variant={plan.popular ? "default" : "outline"}
                 onClick={() => handlePayment(plan)}
-                disabled={plan.priceAmount === 0 || isLoading}
+                disabled={plan.priceAmount === 0 || loadingPlan === plan.name}
               >
-                {isLoading ? "Processing..." : plan.buttonText}
+                {loadingPlan === plan.name ? "Processing..." : plan.buttonText}
               </Button>
             </div>
           ))}

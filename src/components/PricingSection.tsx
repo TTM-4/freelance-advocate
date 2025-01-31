@@ -40,6 +40,7 @@ export const PricingSection = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -67,6 +68,8 @@ export const PricingSection = () => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
@@ -78,11 +81,13 @@ export const PricingSection = () => {
 
       if (error) throw error;
 
-      // Create form and submit to PayFast
+      // Create a hidden form and submit it
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = data.paymentUrl;
+      form.style.display = 'none';
 
+      // Add all PayFast fields
       Object.entries(data.paymentData).forEach(([key, value]) => {
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -91,6 +96,7 @@ export const PricingSection = () => {
         form.appendChild(input);
       });
 
+      // Append form to body and submit
       document.body.appendChild(form);
       form.submit();
     } catch (error) {
@@ -100,6 +106,8 @@ export const PricingSection = () => {
         description: "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -139,9 +147,9 @@ export const PricingSection = () => {
                 className="w-full"
                 variant={plan.popular ? "default" : "outline"}
                 onClick={() => handlePayment(plan)}
-                disabled={plan.priceAmount === 0}
+                disabled={plan.priceAmount === 0 || isLoading}
               >
-                {plan.buttonText}
+                {isLoading ? "Processing..." : plan.buttonText}
               </Button>
             </div>
           ))}

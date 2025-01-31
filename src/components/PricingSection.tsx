@@ -81,10 +81,10 @@ export const PricingSection = () => {
 
       if (error) throw error;
 
-      // Submit directly to PayFast production URL
+      // Create a form and submit it to the URL provided by the edge function
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = 'https://www.payfast.co.za/eng/process';
+      form.action = data.paymentUrl;
       form.style.display = 'none';
 
       Object.entries(data.paymentData).forEach(([key, value]) => {

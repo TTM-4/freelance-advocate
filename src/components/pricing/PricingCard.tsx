@@ -1,62 +1,209 @@
 import { Button } from "@/components/ui/button";
-import { PricingFeature } from "./PricingFeature";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 interface PricingCardProps {
-  plan: {
-    name: string;
-    price: string;
-    features: string[];
-    buttonText: string;
-    popular: boolean;
-    priceAmount: number;
-  };
-  isLoading: boolean;
-  onSubscribe: (plan: any) => void;
+  title: string;
+  price: string;
+  description: string;
+  features: string[];
+  highlighted?: boolean;
+  buttonText: string;
 }
 
-export const PricingCard = ({ plan, isLoading, onSubscribe }: PricingCardProps) => {
+export const PricingCard = ({
+  title,
+  price,
+  description,
+  features,
+  highlighted = false,
+  buttonText,
+}: PricingCardProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-  const handleAction = () => {
-    if (plan.priceAmount === 0) {
-      navigate("/generator");  // Changed from "/" to "/generator"
-    } else {
-      onSubscribe(plan);
+  const handlePayment = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Please sign in",
+          description: "You need to be signed in to subscribe",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      if (title === "Free") {
+        navigate("/generator");
+        return;
+      }
+
+      const response = await fetch("/api/create-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          priceId: "price_H5ggYwtDq4fbrJ",
+          userId: session.user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Payment initialization failed");
+      }
+
+      const data = await response.json();
+      window.location.href = data.url;
+    } catch (error: any) {
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to process payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be signed in to cancel your subscription",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/cancel-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: session.user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to cancel subscription");
+      }
+
+      toast({
+        title: "Success",
+        description: "Your subscription has been cancelled",
+      });
+      setShowCancelDialog(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel subscription",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div
-      className={`p-8 rounded-lg ${
-        plan.popular
-          ? "border-2 border-secondary relative bg-secondary/5"
-          : "border border-gray-200"
+      className={`rounded-lg p-8 ${
+        highlighted
+          ? "border-2 border-primary shadow-lg"
+          : "border border-border"
       }`}
     >
-      {plan.popular && (
-        <span className="absolute top-0 right-0 bg-secondary text-white px-3 py-1 text-sm rounded-bl-lg rounded-tr-lg">
-          Popular
-        </span>
-      )}
-      <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-      <p className="text-4xl font-bold mb-6">
-        {plan.price}
-        <span className="text-lg text-gray-600 font-normal">/month</span>
-      </p>
-      <ul className="space-y-4 mb-8">
-        {plan.features.map((feature, idx) => (
-          <PricingFeature key={idx} feature={feature} />
+      <h3 className="text-2xl font-bold">{title}</h3>
+      <p className="mt-4 text-xl font-bold">{price}</p>
+      <p className="mt-2 text-muted-foreground">{description}</p>
+      <ul className="mt-6 space-y-4">
+        {features.map((feature, index) => (
+          <li key={index} className="flex items-center">
+            <svg
+              className="h-5 w-5 text-primary flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="ml-2">{feature}</span>
+          </li>
         ))}
       </ul>
-      <Button
-        className="w-full"
-        variant={plan.popular ? "default" : "outline"}
-        onClick={handleAction}
-        disabled={isLoading}
-      >
-        {isLoading ? "Processing..." : plan.buttonText}
-      </Button>
+      {title === "Pro" ? (
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogTrigger asChild>
+            <Button
+              className="mt-8 w-full"
+              variant={highlighted ? "default" : "outline"}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {buttonText}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to cancel your subscription? You'll lose access to Pro features at the end of your billing period.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCancelSubscription} disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : (
+        <Button
+          className="mt-8 w-full"
+          variant={highlighted ? "default" : "outline"}
+          onClick={handlePayment}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
+          {buttonText}
+        </Button>
+      )}
     </div>
   );
 };

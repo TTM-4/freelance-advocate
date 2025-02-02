@@ -13,136 +13,43 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 interface PricingCardProps {
-  title: string;
-  price: string;
-  description: string;
-  features: string[];
-  highlighted?: boolean;
-  buttonText: string;
+  plan: {
+    name: string;
+    price: string;
+    features: string[];
+    buttonText: string;
+    popular: boolean;
+    priceAmount: number;
+  };
+  isLoading: boolean;
+  onSubscribe: (plan: PricingCardProps['plan']) => Promise<void>;
 }
 
 export const PricingCard = ({
-  title,
-  price,
-  description,
-  features,
-  highlighted = false,
-  buttonText,
+  plan,
+  isLoading,
+  onSubscribe,
 }: PricingCardProps) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-
-  const handlePayment = async () => {
-    try {
-      setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Please sign in",
-          description: "You need to be signed in to subscribe",
-          variant: "destructive",
-        });
-        navigate("/auth");
-        return;
-      }
-
-      if (title === "Free") {
-        navigate("/generator");
-        return;
-      }
-
-      const response = await fetch("/api/create-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          priceId: "price_H5ggYwtDq4fbrJ",
-          userId: session.user.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Payment initialization failed");
-      }
-
-      const data = await response.json();
-      window.location.href = data.url;
-    } catch (error: any) {
-      toast({
-        title: "Payment Error",
-        description: error.message || "Failed to process payment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    try {
-      setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Error",
-          description: "You must be signed in to cancel your subscription",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch("/api/cancel-subscription", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: session.user.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to cancel subscription");
-      }
-
-      toast({
-        title: "Success",
-        description: "Your subscription has been cancelled",
-      });
-      setShowCancelDialog(false);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to cancel subscription",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div
       className={`rounded-lg p-8 ${
-        highlighted
+        plan.popular
           ? "border-2 border-primary shadow-lg"
           : "border border-border"
       }`}
     >
-      <h3 className="text-2xl font-bold">{title}</h3>
-      <p className="mt-4 text-xl font-bold">{price}</p>
-      <p className="mt-2 text-muted-foreground">{description}</p>
+      <h3 className="text-2xl font-bold">{plan.name}</h3>
+      <p className="mt-4 text-xl font-bold">{plan.price}</p>
+      <p className="mt-2 text-muted-foreground">
+        {plan.name === "Free" ? "Get started with basic features" : "Access all premium features"}
+      </p>
       <ul className="mt-6 space-y-4">
-        {features.map((feature, index) => (
+        {plan.features.map((feature, index) => (
           <li key={index} className="flex items-center">
             <svg
               className="h-5 w-5 text-primary flex-shrink-0"
@@ -159,18 +66,19 @@ export const PricingCard = ({
           </li>
         ))}
       </ul>
-      {title === "Pro" ? (
+      {plan.name === "Pro" ? (
         <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
           <AlertDialogTrigger asChild>
             <Button
               className="mt-8 w-full"
-              variant={highlighted ? "default" : "outline"}
+              variant={plan.popular ? "default" : "outline"}
               disabled={isLoading}
+              onClick={() => onSubscribe(plan)}
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              {buttonText}
+              {plan.buttonText}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -182,7 +90,7 @@ export const PricingCard = ({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCancelSubscription} disabled={isLoading}>
+              <AlertDialogAction onClick={() => setShowCancelDialog(false)} disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
@@ -194,14 +102,14 @@ export const PricingCard = ({
       ) : (
         <Button
           className="mt-8 w-full"
-          variant={highlighted ? "default" : "outline"}
-          onClick={handlePayment}
+          variant={plan.popular ? "default" : "outline"}
+          onClick={() => onSubscribe(plan)}
           disabled={isLoading}
         >
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : null}
-          {buttonText}
+          {plan.buttonText}
         </Button>
       )}
     </div>

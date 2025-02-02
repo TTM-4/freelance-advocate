@@ -67,6 +67,11 @@ export const PricingSection = () => {
       return;
     }
 
+    if (plan.name === "Free") {
+      navigate("/generator");
+      return;
+    }
+
     setLoadingPlan(plan.name);
 
     try {
@@ -80,21 +85,7 @@ export const PricingSection = () => {
 
       if (error) throw error;
 
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = data.paymentUrl;
-      form.style.display = 'none';
-
-      Object.entries(data.paymentData).forEach(([key, value]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value as string;
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
+      window.location.href = data.url;
     } catch (error) {
       console.error('Payment error:', error);
       toast({

@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +39,7 @@ const plans = [
 export const PricingSection = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,12 +86,30 @@ export const PricingSection = () => {
 
       if (error) throw error;
 
-      window.location.href = data.url;
-    } catch (error) {
+      if (data?.paymentUrl && data?.paymentData) {
+        // Create form and submit to PayFast
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.paymentUrl;
+
+        Object.entries(data.paymentData).forEach(([key, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+      } else {
+        throw new Error('Invalid payment data received');
+      }
+    } catch (error: any) {
       console.error('Payment error:', error);
       toast({
         title: "Payment Error",
-        description: "There was an error processing your payment. Please try again.",
+        description: error.message || "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -1,6 +1,5 @@
+
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,20 +12,34 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
+
+interface PricingFeature {
+  name: string;
+  included: boolean;
+}
+
+interface PricingPlan {
+  name: string;
+  price: string;
+  features: string[];
+  buttonText: string;
+  popular: boolean;
+  priceAmount: number;
+}
 
 interface PricingCardProps {
-  plan: {
-    name: string;
-    price: string;
-    features: string[];
-    buttonText: string;
-    popular: boolean;
-    priceAmount: number;
-  };
+  plan: PricingPlan;
   isLoading: boolean;
-  onSubscribe: (plan: PricingCardProps['plan']) => Promise<void>;
+  onSubscribe: (plan: PricingPlan) => Promise<void>;
 }
+
+export const PricingFeatureItem = ({ feature }: { feature: string }) => (
+  <li className="flex items-center space-x-2">
+    <Check className="h-5 w-5 text-primary flex-shrink-0" />
+    <span>{feature}</span>
+  </li>
+);
 
 export const PricingCard = ({
   plan,
@@ -34,6 +47,14 @@ export const PricingCard = ({
   onSubscribe,
 }: PricingCardProps) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (plan.name === "Pro") {
+      setShowCancelDialog(true);
+    } else {
+      await onSubscribe(plan);
+    }
+  };
 
   return (
     <div
@@ -49,21 +70,8 @@ export const PricingCard = ({
         {plan.name === "Free" ? "Get started with basic features" : "Access all premium features"}
       </p>
       <ul className="mt-6 space-y-4">
-        {plan.features.map((feature, index) => (
-          <li key={index} className="flex items-center">
-            <svg
-              className="h-5 w-5 text-primary flex-shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span className="ml-2">{feature}</span>
-          </li>
+        {plan.features?.map((feature, index) => (
+          <PricingFeatureItem key={index} feature={feature} />
         ))}
       </ul>
       {plan.name === "Pro" ? (
@@ -73,28 +81,26 @@ export const PricingCard = ({
               className="mt-8 w-full"
               variant={plan.popular ? "default" : "outline"}
               disabled={isLoading}
-              onClick={() => onSubscribe(plan)}
             >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {plan.buttonText}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+              <AlertDialogTitle>Confirm Subscription</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to cancel your subscription? You'll lose access to Pro features at the end of your billing period.
+                You're about to subscribe to our Pro plan. You'll be redirected to our payment processor to complete the transaction.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => setShowCancelDialog(false)} disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Confirm
+              <AlertDialogAction 
+                onClick={() => onSubscribe(plan)} 
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Proceed to Payment
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -103,12 +109,10 @@ export const PricingCard = ({
         <Button
           className="mt-8 w-full"
           variant={plan.popular ? "default" : "outline"}
-          onClick={() => onSubscribe(plan)}
+          onClick={handleSubscribe}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {plan.buttonText}
         </Button>
       )}

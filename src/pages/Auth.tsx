@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,18 +30,66 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = isSignUp 
-        ? await supabase.auth.signUp({ email, password })
-        : await supabase.auth.signInWithPassword({ email, password });
+      if (isSignUp) {
+        // Check if user exists first
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('business_email', email)
+          .single();
 
-      if (error) throw error;
+        if (existingUser) {
+          toast({
+            title: "Account already exists",
+            description: "Please sign in instead",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+          setLoading(false);
+          return;
+        }
 
-      toast({
-        title: isSignUp ? "Account created successfully" : "Logged in successfully",
-        description: isSignUp ? "Please check your email to verify your account" : "Welcome back!",
-      });
+        const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth`,
+          },
+        });
 
-      if (!isSignUp) {
+        if (signUpError) throw signUpError;
+
+        // Send welcome email
+        try {
+          await fetch(`${supabase.supabaseUrl}/functions/v1/send-welcome-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`,
+            },
+            body: JSON.stringify({ email }),
+          });
+        } catch (emailError) {
+          console.error('Error sending welcome email:', emailError);
+        }
+
+        toast({
+          title: "Verification email sent",
+          description: "Please check your email to verify your account",
+        });
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) throw signInError;
+
+        toast({
+          title: "Logged in successfully",
+          description: "Welcome back!",
+        });
+
         navigate("/");
       }
     } catch (error: any) {

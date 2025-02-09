@@ -15,12 +15,15 @@ interface EmailPayload {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { email, firstName }: EmailPayload = await req.json();
+
+    console.log("Attempting to send welcome email to:", email);
 
     const emailResponse = await resend.emails.send({
       from: "ProposalPro AI <onboarding@resend.dev>",

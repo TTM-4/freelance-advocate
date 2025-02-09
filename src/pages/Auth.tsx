@@ -36,7 +36,7 @@ const Auth = () => {
           .from('profiles')
           .select('id')
           .eq('business_email', email)
-          .single();
+          .maybeSingle();
 
         if (existingUser) {
           toast({
@@ -59,18 +59,14 @@ const Auth = () => {
 
         if (signUpError) throw signUpError;
 
-        // Send welcome email
-        try {
-          await fetch(`${supabase.supabaseUrl}/functions/v1/send-welcome-email`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`,
-            },
-            body: JSON.stringify({ email }),
-          });
-        } catch (emailError) {
+        // Send welcome email using Edge Function
+        const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+          body: { email },
+        });
+
+        if (emailError) {
           console.error('Error sending welcome email:', emailError);
+          // Don't throw here, as the signup was successful
         }
 
         toast({

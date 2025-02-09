@@ -76,8 +76,25 @@ export const PricingSection = () => {
     setLoadingPlan(plan.name);
 
     try {
+      // Create payment record in database first
+      const { data: payment, error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          user_id: user.id,
+          amount: plan.priceAmount,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (paymentError) {
+        throw paymentError;
+      }
+
+      // Then initiate payment process
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
+          paymentId: payment.id,
           amount: plan.priceAmount,
           returnUrl: `${window.location.origin}/payment-success`,
           cancelUrl: `${window.location.origin}/payment-cancelled`,

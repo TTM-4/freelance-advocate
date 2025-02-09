@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 
@@ -11,16 +12,15 @@ const MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID')
 const MERCHANT_KEY = Deno.env.get('PAYFAST_MERCHANT_KEY')
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { amount, returnUrl, cancelUrl } = await req.json()
+    const { amount, returnUrl, cancelUrl, paymentId } = await req.json()
 
     // Debug log for troubleshooting
-    console.log('Payment request received:', { amount, returnUrl, cancelUrl })
+    console.log('Payment request received:', { amount, returnUrl, cancelUrl, paymentId })
     console.log('Using merchant credentials:', { 
       merchantId: MERCHANT_ID ? 'Present' : 'Missing',
       merchantKey: MERCHANT_KEY ? 'Present' : 'Missing'
@@ -36,7 +36,7 @@ serve(async (req) => {
     }
 
     // Validate required parameters
-    if (!amount || !returnUrl || !cancelUrl) {
+    if (!amount || !returnUrl || !cancelUrl || !paymentId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -70,25 +70,6 @@ serve(async (req) => {
       )
     }
 
-    // Create payment record
-    const { data: payment, error: paymentError } = await supabase
-      .from('payments')
-      .insert({
-        user_id: user.id,
-        amount: amount,
-        status: 'pending'
-      })
-      .select()
-      .single()
-
-    if (paymentError) {
-      console.error('Payment creation error:', paymentError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to create payment record' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     // Generate PayFast payment data
     const paymentData = {
       merchant_id: MERCHANT_ID,
@@ -98,7 +79,7 @@ serve(async (req) => {
       notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
       amount: amount.toFixed(2),
       item_name: 'ProposalPro AI Pro Subscription',
-      custom_str1: payment.id,
+      custom_str1: paymentId,
       email_address: user.email
     }
 

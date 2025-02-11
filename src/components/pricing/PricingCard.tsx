@@ -66,11 +66,6 @@ export const PricingCard = ({
     >
       <h3 className="text-2xl font-bold">{plan.name}</h3>
       <p className="mt-4 text-xl font-bold">{plan.price}</p>
-      {plan.name === "Pro" && (
-        <p className="text-sm text-muted-foreground mt-1">
-          Processed in ZAR via PayFast
-        </p>
-      )}
       <p className="mt-2 text-muted-foreground">
         {plan.name === "Free" ? "Get started with basic features" : "Access all premium features"}
       </p>

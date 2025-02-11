@@ -11,6 +11,19 @@ const PAYFAST_URL = "https://www.payfast.co.za/eng/process"
 const MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID')
 const MERCHANT_KEY = Deno.env.get('PAYFAST_MERCHANT_KEY')
 
+async function convertUSDtoZAR(usdAmount: number): Promise<number> {
+  try {
+    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const data = await response.json();
+    const zarRate = data.rates.ZAR;
+    return Math.ceil(usdAmount * zarRate); // Round up to nearest ZAR
+  } catch (error) {
+    console.error('Exchange rate error:', error);
+    // Fallback to approximate rate if API fails
+    return Math.ceil(usdAmount * 19); // Approximate USD to ZAR rate
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -19,14 +32,22 @@ serve(async (req) => {
   try {
     const { amount, returnUrl, cancelUrl, paymentId } = await req.json()
 
-    // Debug log for troubleshooting
-    console.log('Payment request received:', { amount, returnUrl, cancelUrl, paymentId })
+    // Convert USD amount to ZAR
+    const zarAmount = await convertUSDtoZAR(amount);
+
+    console.log('Payment request received:', { 
+      usdAmount: amount, 
+      zarAmount,
+      returnUrl, 
+      cancelUrl, 
+      paymentId 
+    })
+    
     console.log('Using merchant credentials:', { 
       merchantId: MERCHANT_ID ? 'Present' : 'Missing',
       merchantKey: MERCHANT_KEY ? 'Present' : 'Missing'
     })
 
-    // Validate required environment variables
     if (!MERCHANT_ID || !MERCHANT_KEY) {
       console.error('Missing PayFast credentials')
       return new Response(
@@ -35,7 +56,6 @@ serve(async (req) => {
       )
     }
 
-    // Validate required parameters
     if (!amount || !returnUrl || !cancelUrl || !paymentId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
@@ -43,13 +63,11 @@ serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -70,14 +88,14 @@ serve(async (req) => {
       )
     }
 
-    // Generate PayFast payment data
+    // Generate PayFast payment data with ZAR amount
     const paymentData = {
       merchant_id: MERCHANT_ID,
       merchant_key: MERCHANT_KEY,
       return_url: returnUrl,
       cancel_url: cancelUrl,
       notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
-      amount: amount.toFixed(2),
+      amount: zarAmount.toFixed(2),
       item_name: 'ProposalPro AI Pro Subscription',
       custom_str1: paymentId,
       email_address: user.email
@@ -88,11 +106,12 @@ serve(async (req) => {
       paymentData: { ...paymentData, merchant_id: 'HIDDEN', merchant_key: 'HIDDEN' }
     })
 
-    // Return success response with payment URL and data
+    // Return success response with payment URL, data and ZAR amount for display
     return new Response(
       JSON.stringify({
         paymentUrl: PAYFAST_URL,
-        paymentData
+        paymentData,
+        zarAmount
       }),
       { 
         status: 200, 

@@ -66,6 +66,11 @@ export const PricingCard = ({
     >
       <h3 className="text-2xl font-bold">{plan.name}</h3>
       <p className="mt-4 text-xl font-bold">{plan.price}</p>
+      {plan.name === "Pro" && (
+        <p className="text-sm text-muted-foreground mt-1">
+          Processed in ZAR via PayFast
+        </p>
+      )}
       <p className="mt-2 text-muted-foreground">
         {plan.name === "Free" ? "Get started with basic features" : "Access all premium features"}
       </p>
@@ -90,7 +95,7 @@ export const PricingCard = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Subscription</AlertDialogTitle>
               <AlertDialogDescription>
-                You're about to subscribe to our Pro plan. You'll be redirected to our payment processor to complete the transaction.
+                You're about to subscribe to our Pro plan for {plan.price}. The payment will be processed in South African Rand (ZAR) via PayFast. The final amount will be calculated using current exchange rates.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -8,7 +8,7 @@ import { PricingCard } from "./pricing/PricingCard";
 const plans = [
   {
     name: "Free",
-    price: "$0",
+    price: "R0",
     features: [
       "3 proposals per month",
       "Basic templates",
@@ -21,7 +21,7 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "$19",
+    price: "R300",
     features: [
       "Unlimited proposals",
       "Advanced templates",
@@ -32,7 +32,7 @@ const plans = [
     ],
     buttonText: "Subscribe Now",
     popular: true,
-    priceAmount: 19,
+    priceAmount: 300,
   },
 ];
 
